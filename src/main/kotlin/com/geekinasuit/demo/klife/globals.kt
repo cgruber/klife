@@ -1,13 +1,10 @@
 package com.geekinasuit.demo.klife
 
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.imageFromResource
-import org.jetbrains.skija.Color
-import java.io.File
 import java.util.*
-import kotlin.concurrent.timerTask
 
+const val INITIAL_WIDTH = 800
+const val INITIAL_HEIGHT = 600
 const val MIN_WIDTH = 600
 const val MIN_HEIGHT = 400
 const val MAX_WIDTH = Int.MAX_VALUE
@@ -20,19 +17,20 @@ object Resources {
 
 val windowSizeConstrainer = WindowSizeConstrainer(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT)
 
-// This is soooo gross.
-object GlobalState {
-  val fileToLoad = mutableStateOf<File?>(null)
-  val space = mutableStateOf<BitMatrix>(ArrayBitMatrix(50, 30).apply {
-    set(5, 5, ALIVE)
-    set(6, 5, ALIVE)
-    set(7, 5, ALIVE)
-    set(7, 4, ALIVE)
-    set(6, 3, ALIVE)
-  })
-  val speed = mutableStateOf(4)
-  val scale = mutableStateOf(15)
-  val active = mutableStateOf(false)
+object Global {
+  val states = mutableMapOf<Int, LifeState>()
   val timer = Timer()
+  fun newLife(matrix: BitMatrix? = null, scale: Int? = null) {
+    newLifeWindow((states.keys.maxOfOrNull { it } ?: -1) + 1, matrix, scale)
+  }
 }
 
+object Patterns {
+  fun glider(matrix: MutableBitMatrix, x: Int, y: Int) {
+    matrix.set(5, 5, ALIVE)
+    matrix.set(6, 5, ALIVE)
+    matrix.set(7, 5, ALIVE)
+    matrix.set(7, 4, ALIVE)
+    matrix.set(6, 3, ALIVE)
+  }
+}

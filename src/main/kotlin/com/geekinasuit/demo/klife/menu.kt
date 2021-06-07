@@ -5,36 +5,37 @@ import androidx.compose.ui.window.KeyStroke
 import androidx.compose.ui.window.Menu
 import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.MenuItem
-import java.io.File
-import javax.swing.JFileChooser
-import javax.swing.filechooser.FileNameExtensionFilter
-import javax.swing.UnsupportedLookAndFeelException
 
-import javax.swing.UIManager
-import javax.swing.plaf.nimbus.NimbusLookAndFeel
-
-
-fun menu() = MenuBar(
+fun menu(state: LifeState) = MenuBar(
   Menu(
     "KtLife",
     MenuItem(
+      "New",
+      onClick = { Global.newLife() },
+      shortcut = KeyStroke(Key.N)
+    ),
+    MenuItem(
       "Load...",
-      onClick = { GlobalState.fileToLoad.value = loadFile() },
+      onClick = { Actions.loadFile() },
       shortcut = KeyStroke(Key.L)
+    ),
+    MenuItem(
+      "Save...",
+      onClick = { Actions.saveFile(state) },
+      shortcut = KeyStroke(Key.S)
+    )
+  ),
+  Menu(
+    "Control",
+    MenuItem(
+      if (state.active.value) "Pause" else "Play",
+      onClick = { Actions.toggleActive(state) },
+      shortcut = KeyStroke(Key.Spacebar)
+    ),
+    MenuItem(
+      "Step",
+      onClick = { Actions.stepEvolution(state) },
+      shortcut = KeyStroke(Key.Spacebar)
     )
   )
 )
-
-fun loadFile(): File? {
-  try {
-    UIManager.setLookAndFeel(NimbusLookAndFeel::class.java.name)
-  } catch (e: Exception) {
-  }
-  val chooser = JFileChooser()
-  val filter = FileNameExtensionFilter("JPG, GIF, and PNG Images", "jpg", "jpeg", "gif", "png")
-  chooser.fileFilter = filter
-  val returnVal = chooser.showOpenDialog(null)
-  return if (returnVal == JFileChooser.APPROVE_OPTION) {
-    chooser.selectedFile
-  } else null
-}

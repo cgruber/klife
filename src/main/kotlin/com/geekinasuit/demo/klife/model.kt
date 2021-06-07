@@ -1,10 +1,13 @@
 package com.geekinasuit.demo.klife
 
+import androidx.compose.runtime.mutableStateOf
+import java.io.File
+
 typealias Bit = Boolean
 const val ALIVE: Bit = true
 const val DEAD: Bit = false
 
-interface BitMatrix{
+interface BitMatrix {
   val width: Int
   val height: Int
   val strategy: BorderStrategy
@@ -23,8 +26,8 @@ class ArrayBitMatrix(
   override val width: Int,
   override val height: Int,
   override val strategy: BorderStrategy = ToroidalBorderStrategy
-): MutableBitMatrix {
-  constructor(matrix: BitMatrix): this(matrix.width, matrix.height, matrix.strategy){
+) : MutableBitMatrix {
+  constructor(matrix: BitMatrix) : this(matrix.width, matrix.height, matrix.strategy) {
     for (x in 0 until width) {
       for (y in 0 until height) {
         data[x][y] = matrix.get(x, y)
@@ -40,14 +43,14 @@ class ArrayBitMatrix(
   override fun toggle(x: Int, y: Int) = set(x, y, ! get(x, y))
   override fun getNeighborhood(x: Int, y: Int): Neighborhood {
     return Neighborhood(
-      get(x-1, y-1), get(x, y-1), get(x+1, y-1),
-      get(x-1, y), get(x, y), get(x+1, y),
-      get(x-1, y+1), get(x, y+1), get(x+1, y+1),
+      get(x - 1, y - 1), get(x, y - 1), get(x + 1, y - 1),
+      get(x - 1, y), get(x, y), get(x + 1, y),
+      get(x - 1, y + 1), get(x, y + 1), get(x + 1, y + 1),
     )
   }
 
   override fun equals(other: Any?): Boolean {
-    return when(other) {
+    return when (other) {
       is ArrayBitMatrix -> data.contentDeepEquals(other.data)
       is BitMatrix -> {
         for (x in 0 until width) {
@@ -73,11 +76,16 @@ class ArrayBitMatrix(
   }
 }
 
-
 class Neighborhood(
-  val upperLeft: Bit, val upperCenter: Bit, val upperRight: Bit,
-  val centerLeft: Bit, val center: Bit, val centerRight: Bit,
-  val lowerLeft: Bit, val lowerCenter: Bit, val lowerRight: Bit
+  val upperLeft: Bit,
+  val upperCenter: Bit,
+  val upperRight: Bit,
+  val centerLeft: Bit,
+  val center: Bit,
+  val centerRight: Bit,
+  val lowerLeft: Bit,
+  val lowerCenter: Bit,
+  val lowerRight: Bit
 ) {
   val neighbors get() = arrayOf(
     upperLeft, upperCenter, upperRight, centerLeft, centerRight, lowerLeft, lowerCenter, lowerRight
@@ -86,7 +94,13 @@ class Neighborhood(
 
 interface BorderStrategy {
   fun get(x: Int, y: Int, matrix: BitMatrix, fetcher: (x: Int, y: Int) -> Bit): Bit
-  fun set(x: Int, y: Int, value: Bit, matrix: BitMatrix, setter: (x: Int, y: Int, value: Bit) -> Unit)
+  fun set(
+    x: Int,
+    y: Int,
+    value: Bit,
+    matrix: BitMatrix,
+    setter: (x: Int, y: Int, value: Bit) -> Unit
+  )
   fun translateX(x: Int, width: Int): Int
   fun translateY(y: Int, height: Int): Int
 }
@@ -95,7 +109,7 @@ interface BorderStrategy {
  * Translates a negative coordinate as coming from the other side of the space, stitching
  * the coordinate space into a Toroid.
  */
-object ToroidalBorderStrategy: BorderStrategy {
+object ToroidalBorderStrategy : BorderStrategy {
   override fun get(
     x: Int,
     y: Int,
@@ -129,5 +143,31 @@ object ToroidalBorderStrategy: BorderStrategy {
       }
     }
     return xlatn
+  }
+}
+
+class LifeState {
+  val fileToLoad = mutableStateOf<File?>(null)
+  val space = mutableStateOf<BitMatrix>(
+    ArrayBitMatrix(10, 10).apply {
+    }
+  )
+  val speed = mutableStateOf(8)
+  val scale = mutableStateOf(10)
+  val active = mutableStateOf(false)
+  fun asText(): String {
+    with(space.value) {
+      val lines = mutableListOf(
+        "### Conway's Game of Life save file",
+        "size: $width,$height",
+        "scale: ${scale.value}"
+      )
+      for (x in 0 until width) {
+        for (y in 0 until height) {
+          if (get(x, y)) lines.add("$x,$y")
+        }
+      }
+      return lines.joinToString("\n")
+    }
   }
 }

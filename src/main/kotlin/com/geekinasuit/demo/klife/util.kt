@@ -2,18 +2,16 @@ package com.geekinasuit.demo.klife
 
 import androidx.compose.desktop.AppManager
 import androidx.compose.runtime.MutableState
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.ImageBitmapConfig
 import androidx.compose.ui.graphics.asDesktopBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import com.google.common.flogger.FluentLogger
 import org.jetbrains.skija.*
 import java.io.File
-import kotlin.math.min
-
-private val logger = FluentLogger.forEnclosingClass()
+import javax.swing.JFileChooser
+import javax.swing.UIManager
+import javax.swing.filechooser.FileNameExtensionFilter
+import javax.swing.plaf.nimbus.NimbusLookAndFeel
 
 class WindowSizeConstrainer(
   val minWidth: Int = 0,
@@ -47,27 +45,61 @@ class WindowSizeConstrainer(
 }
 
 fun <T> MutableState<T>.swapBetween(first: T, second: T) {
-  this.value = when(this.value) {
+  this.value = when (this.value) {
     first -> second
     second -> first
     else -> throw IllegalArgumentException("Unexpected value for swap: ${this.value}")
   }
 }
 
-
-internal fun loadMatrixFromImage(file: File, trimToWidth: Int, trimToHeight: Int): BitMatrix? {
+internal fun loadMatrixFromImage(file: File): BitMatrix? {
   if (!file.exists()) return null
   val imageBytes = file.readBytes()
   val loaded = Image.makeFromEncoded(imageBytes).asImageBitmap().asDesktopBitmap()
-  val width = min(loaded.width, trimToWidth)
-  val height = min(loaded.height, trimToHeight)
-  val matrix = ArrayBitMatrix(width, height)
-  for (x in 0..width) {
-    for (y in 0..height) {
-      matrix.set(x, y, loaded.getColor(x, y) >= -1)
+  return ArrayBitMatrix(loaded.width, loaded.height).apply {
+    for (x in 0..loaded.width) {
+      for (y in 0..loaded.height) {
+        set(x, y, loaded.getColor(x, y) >= -1)
+      }
     }
   }
-  return matrix
 }
 
+internal fun loadMatrixFromLifeTextFile(file: File): Pair<BitMatrix, Int>? {
+  if (!file.exists()) return null
+  val lines = ArrayDeque(file.readLines())
+  return loadMatrixFromLifeTextLines(lines, file.name)
+}
 
+fun chooseFile(): File? {
+  try {
+    UIManager.setLookAndFeel(NimbusLookAndFeel::class.java.name)
+  } catch (e: Exception) { }
+  val chooser = JFileChooser().apply {
+    dialogTitle = "Open Life File"
+    fileFilter = FileNameExtensionFilter(
+      "JPG, GIF, and PNG Images, and .life text files.",
+      "jpg", "jpeg", "gif", "png", "life"
+    )
+  }
+  val returnVal = chooser.showOpenDialog(null)
+  return if (returnVal == JFileChooser.APPROVE_OPTION) {
+    chooser.selectedFile
+  } else null
+}
+
+fun saveFile(): File? {
+  try {
+    UIManager.setLookAndFeel(NimbusLookAndFeel::class.java.name)
+  } catch (e: Exception) { }
+  val chooser = JFileChooser().apply {
+    dialogTitle = "Save Life File"
+  }
+
+  val returnVal = chooser.showSaveDialog(null)
+  return if (returnVal == JFileChooser.APPROVE_OPTION) {
+    chooser.selectedFile
+  } else null
+}
+
+val File.suffix get() = this.name.split(".").last()
