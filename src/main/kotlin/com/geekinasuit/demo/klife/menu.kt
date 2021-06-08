@@ -8,7 +8,7 @@ import androidx.compose.ui.window.MenuItem
 
 fun menu(state: LifeState) = MenuBar(
   Menu(
-    "KtLife",
+    "File",
     MenuItem(
       "New",
       onClick = { Global.newLife() },
