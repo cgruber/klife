@@ -6,12 +6,16 @@ import androidx.compose.ui.graphics.asDesktopBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import com.google.common.flogger.FluentLogger
 import org.jetbrains.skija.*
 import java.io.File
 import javax.swing.JFileChooser
+import javax.swing.JOptionPane
 import javax.swing.UIManager
 import javax.swing.filechooser.FileNameExtensionFilter
 import javax.swing.plaf.nimbus.NimbusLookAndFeel
+
+private val logger = FluentLogger.forEnclosingClass()
 
 class WindowSizeConstrainer(
   val minWidth: Int = 0,
@@ -68,7 +72,18 @@ internal fun loadMatrixFromImage(file: File): BitMatrix? {
 internal fun loadMatrixFromLifeTextFile(file: File): Pair<BitMatrix, Int>? {
   if (!file.exists()) return null
   val lines = ArrayDeque(file.readLines())
-  return loadMatrixFromLifeTextLines(lines, file.name)
+  return try {
+    loadMatrixFromLifeTextLines(lines)
+  } catch (e: LifeFileParseException) {
+    logger.atSevere().log("Parsing error in ${file.path}: ${e.message}")
+    JOptionPane.showMessageDialog(
+      null,
+      "Parsing error in ${file.path}: ${e.message}",
+      "Error processing Life file.",
+      JOptionPane.WARNING_MESSAGE
+    )
+    null
+  }
 }
 
 fun chooseFile(): File? {

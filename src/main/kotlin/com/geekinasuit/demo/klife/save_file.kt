@@ -5,25 +5,45 @@ import java.lang.NumberFormatException
 
 private val logger = FluentLogger.forEnclosingClass()
 
-internal fun loadMatrixFromLifeTextLines(lines: ArrayDeque<String>, fileName: String): Pair<BitMatrix, Int>? {
+internal fun loadMatrixFromLifeTextLines(lines: ArrayDeque<String>): Pair<BitMatrix, Int>? {
   logger.atInfo().log("Processing lines: %s", lines.joinToString("\n"))
   return try {
     parseHeader(lines.removeFirst())
-    val (width, height) = parseSize(lines.removeFirst())
-    logger.atInfo().log("Loading matrix with width: %s height %s", width, height)
-    val scale = parseScale(lines.removeFirst())
-    ArrayBitMatrix(width, height).apply {
-      lines.forEachIndexed { index, line ->
-        val (x, y) = line.parseCoordinates(index + 3)
-        set(x, y, ALIVE)
+    var size: Pair<Int, Int>? = null
+    var scale: Int? = null
+    val liveCoordinates = mutableListOf<Pair<Int, Int>>()
+    lines.asSequence()
+      .map { line -> line.split("#")[0] }
+      .forEachIndexed { index, line ->
+        when {
+          line.trim().startsWith("size") -> {
+            if (size != null) {
+              throw LifeFileParseException("Size declared more than once.")
+            }
+            size = parseSize(line, index + 1)
+          }
+          line.trim().startsWith("scale") -> {
+            if (scale != null) {
+              throw LifeFileParseException("Scale declared more than once.")
+            }
+            scale = parseScale(line, index + 1)
+          }
+          line.isNotBlank() -> {
+            liveCoordinates.add(line.parseCoordinates(index + 3))
+          }
+        }
+    }
+    when {
+      size == null -> throw LifeFileParseException("No size declared.")
+      scale == null -> throw LifeFileParseException("No scale declared.")
+      else -> {
+        ArrayBitMatrix(size!!.first, size!!.second).apply {
+          liveCoordinates.forEach { (x, y) -> set(x, y, ALIVE) }
+        } to scale!!
       }
-    } to scale
-  } catch (e: LifeFileParseException) {
-    logger.atSevere().log("Parsing error in $fileName: ${e.message}")
-    null
+    }
   } catch (e: NumberFormatException) {
-    logger.atSevere().log("Invalid file format - found non-numeric coordinates in $fileName")
-    null
+    throw LifeFileParseException("Invalid file format - found non-numeric coordinates.")
   }
 }
 
@@ -54,21 +74,23 @@ private fun String.parseCoordinates(lineNumber: Int): Pair<Int, Int> {
 }
 
 internal fun parseHeader(line: String): String {
-  return line.parseProperty("###", 2, " ") {
+  return line.parseProperty("###", 1, " ") {
     "Bad initial comment marker, should start with \"### \""
   }
 }
 
-internal fun parseSize(line: String): Pair<Int, Int> {
-  val size = line.parseProperty("size", 2)
-  return size.parseCoordinates(2)
+internal fun parseSize(line: String, lineNumber: Int): Pair<Int, Int> {
+  val size = line.parseProperty("size", lineNumber)
+  return size.parseCoordinates(lineNumber)
 }
 
-internal fun parseScale(line: String): Int {
+internal fun parseScale(line: String, lineNumber: Int): Int {
   return try {
-    line.parseProperty("scale", 3).trim().toInt()
+    line.parseProperty("scale", lineNumber).trim().toInt()
   } catch (e: NumberFormatException) {
-    throw LifeFileParseException("Scale line \"$line\" on line 3 did not contain a valid number")
+    throw LifeFileParseException(
+      "Scale line \"$line\" on line $lineNumber did not contain a valid number"
+    )
   }
 }
 

@@ -38,10 +38,7 @@ object Actions {
 
   fun saveFile(state: LifeState) {
     state.active.value = false // Pause during the save.Ok,
-    val dialog = JDialog(null as Frame?, "File Already Exists!!!", true)
-
     saveFile()?.let { file ->
-
       var shouldSave = true
       if (file.exists()) {
         val result = JOptionPane.showConfirmDialog(
