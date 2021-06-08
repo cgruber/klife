@@ -3,8 +3,21 @@ on:
   release:
     types: [created]
 jobs:
-  release-linux:
-    runs-on: ubuntu-latest
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ macos-latest, ubuntu-latest, windows-latest ]
+        include:
+          - os: macos-latest
+            FILE_GLOB: "build/compose/binaries/main/dmg/KLife-*.dmg"
+            TARGET: "packageDmg"
+          - os: ubuntu-latest
+            FILE_GLOB: "build/compose/binaries/main/deb/klife_*.deb"
+            TARGET: "packageDeb"
+          - os: windows-latest
+            FILE_GLOB: "build/compose/binaries/main/msi/KLife-*.msi"
+            TARGET: "packageMsi"
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 15
@@ -13,50 +26,12 @@ jobs:
           java-version: '15'
           distribution: 'adopt'
       - name: Build Release Package
-        run: ./gradlew packageDeb
+        run: ./gradlew ${{ matrix.TARGET }}
       - name: Upload release artifact
         uses: svenstaro/upload-release-action@2.2.1
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/compose/binaries/main/dmg/KLife-*.deb
-          tag: ${{ github.ref }}
-          overwrite: true
-          file_glob: true
-  release-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up JDK 15
-        uses: actions/setup-java@v2
-        with:
-          java-version: '15'
-          distribution: 'adopt'
-      - name: Build Release Package
-        run: ./gradlew packageDmg
-      - name: Upload release artifact
-        uses: svenstaro/upload-release-action@2.2.1
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/compose/binaries/main/dmg/KLife-*.dmg
-          tag: ${{ github.ref }}
-          overwrite: true
-          file_glob: true
-  release-windows:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up JDK 15
-        uses: actions/setup-java@v2
-        with:
-          java-version: '15'
-          distribution: 'adopt'
-      - name: Build Release Package
-        run: ./gradlew packageMsi
-      - name: Upload release artifact
-        uses: svenstaro/upload-release-action@2.2.1
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/compose/binaries/main/dmg/KLife-*.msi
+          file: ${{ matrix.FILE_GLOB }}
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true
