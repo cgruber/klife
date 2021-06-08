@@ -3,6 +3,8 @@
 This is KLife, a Conway's Game of Life simulator, in a jetpack 
 compose desktop window.
 
+![screenshot](screenshot.png)
+
 One goal was to explore Compose Desktop. A secondary goal was
 to test out Bazel in this compose context. That hasn't yet
 happened.
